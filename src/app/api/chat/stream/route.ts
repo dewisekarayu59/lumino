@@ -204,7 +204,8 @@ async function chatWith9Router(
     })),
   ]
 
-  const mappedModel = mapModel(model)
+  const is9Router = baseURL.includes('127.0.0.1') || baseURL.includes('serveo') || baseURL.includes('9router')
+  const mappedModel = is9Router ? mapModel(model) : model
 
   // Cap max_tokens to prevent 400 bad request errors on models with lower completion limits
   let maxCompletionTokens = options.maxTokens || 4096
