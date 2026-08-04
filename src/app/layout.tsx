@@ -22,7 +22,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-[100dvh] bg-background text-text-primary antialiased">
         <ThemeProvider>
-          <NextTopLoader />
           <NotificationProvider />
           {children}
         </ThemeProvider>
