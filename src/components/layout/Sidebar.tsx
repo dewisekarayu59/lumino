@@ -59,7 +59,7 @@ export function Sidebar() {
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setSessions(data)
+          setSessions(data.map((s: any) => ({ ...s, messages: s.messages || [] })))
         }
       })
       .catch(() => {})

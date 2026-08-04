@@ -16,12 +16,29 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const session = await prisma.chatSession.findFirst({ where: { id: params.id, userId } })
   if (!session) return NextResponse.json({ message: 'Not found' }, { status: 404 })
 
+  const { searchParams } = new URL(request.url)
+  const cursor = searchParams.get('cursor')
+  
+  const take = 20
+  
   const messages = await prisma.chatMessage.findMany({
     where: { sessionId: params.id },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
+    take: take + 1,
+    ...(cursor && {
+      cursor: { id: cursor },
+      skip: 1,
+    }),
   })
 
-  return NextResponse.json(messages)
+  const hasMore = messages.length > take
+  const data = hasMore ? messages.slice(0, take) : messages
+
+  return NextResponse.json({ 
+    messages: data.reverse(), 
+    nextCursor: data.length > 0 ? data[data.length - 1].id : null,
+    hasMore 
+  })
 }
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {

@@ -172,6 +172,43 @@ export function ChatInput({ sessionId, autoFocus }: { sessionId: string; autoFoc
       })
     }
 
+    const compressImageAsDataURL = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.readAsDataURL(file)
+        reader.onload = (event) => {
+          const img = new Image()
+          img.src = event.target?.result as string
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const MAX_WIDTH = 1200
+            const MAX_HEIGHT = 1200
+            let width = img.width
+            let height = img.height
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width
+                width = MAX_WIDTH
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height
+                height = MAX_HEIGHT
+              }
+            }
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx?.drawImage(img, 0, 0, width, height)
+            resolve(canvas.toDataURL('image/jpeg', 0.6)) // 60% quality JPEG
+          }
+          img.onerror = (e) => reject(e)
+        }
+        reader.onerror = (e) => reject(e)
+      })
+    }
+
     const loadPdfJS = (): Promise<any> => {
       return new Promise((resolve, reject) => {
         if ((window as any)['pdfjs-dist/build/pdf']) {
@@ -213,7 +250,7 @@ export function ChatInput({ sessionId, autoFocus }: { sessionId: string; autoFoc
       for (const file of attachments) {
         try {
           if (file.type.startsWith('image/')) {
-            const dataUrl = await readFileAsDataURL(file)
+            const dataUrl = await compressImageAsDataURL(file)
             processedAttachments.push({
               name: file.name,
               type: file.type,
@@ -365,7 +402,12 @@ export function ChatInput({ sessionId, autoFocus }: { sessionId: string; autoFoc
       if (error.name === 'AbortError') {
         updateLastAssistant(sessionId, '(Dihentikan)')
       } else {
-        updateLastAssistant(sessionId, `Error: ${error.message || 'Gagal mendapat respons'}`)
+        const errStr = String(error.message || error)
+        if (errStr.includes('fetch failed') || errStr.includes('Failed to fetch') || errStr.includes('Connection')) {
+          updateLastAssistant(sessionId, `\n\n> [!WARNING]\n> **Koneksi Terputus**\n> Server AI (Laptop Anda) sedang offline atau mati. Pastikan aplikasi Serveo berjalan di terminal laptop Anda dan internet tersambung.`)
+        } else {
+          updateLastAssistant(sessionId, `Error: ${error.message || 'Gagal mendapat respons'}`)
+        }
       }
     } finally {
       setIsGenerating(false)

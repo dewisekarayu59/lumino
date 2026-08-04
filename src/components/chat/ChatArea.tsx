@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { useChatStore } from '@/lib/store'
 import { MessageBubble } from './MessageBubble'
 import { ChatInput } from './ChatInput'
@@ -15,9 +15,40 @@ export function ChatArea() {
   const session = sessions.find(s => s.id === activeSessionId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Initial fetch when session is selected if empty
+    if (activeSessionId && session && (!session.messages || session.messages.length === 0)) {
+      useChatStore.getState().fetchMessages(activeSessionId)
+    }
+  }, [activeSessionId, session])
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [session?.messages])
+  }, [session?.messages.length])
+
+  const handleScroll = useCallback(async () => {
+    if (!scrollRef.current || !session || isLoadingMore) return
+    if (scrollRef.current.scrollTop <= 50) { // Near top
+      const oldestMsg = session.messages[0]
+      if (oldestMsg) {
+        setIsLoadingMore(true)
+        const previousScrollHeight = scrollRef.current.scrollHeight
+        await useChatStore.getState().fetchMessages(session.id, oldestMsg.id)
+        
+        // Restore scroll position to avoid jump
+        requestAnimationFrame(() => {
+          if (scrollRef.current) {
+            const newScrollHeight = scrollRef.current.scrollHeight
+            scrollRef.current.scrollTop = newScrollHeight - previousScrollHeight
+          }
+          setIsLoadingMore(false)
+        })
+      }
+    }
+  }, [session, isLoadingMore])
 
   const handleRetry = useCallback(() => {
     if (!session) return
@@ -103,7 +134,7 @@ export function ChatArea() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={scrollRef} onScroll={handleScroll}>
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full px-4">
             <motion.div

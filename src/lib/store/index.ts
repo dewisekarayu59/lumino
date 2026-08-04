@@ -51,6 +51,7 @@ interface ChatState {
 
   getActiveSession: () => DBSession | undefined
   getFilteredSessions: () => DBSession[]
+  fetchMessages: (sessionId: string, cursor?: string) => Promise<void>
 }
 
 async function apiGet(url: string) {
@@ -144,6 +145,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
           : s
       ),
     }))
+  },
+
+  fetchMessages: async (sessionId, cursor) => {
+    try {
+      const url = cursor 
+        ? `/api/sessions/${sessionId}/messages?cursor=${cursor}`
+        : `/api/sessions/${sessionId}/messages`
+      
+      const { messages } = await apiGet(url)
+      
+      set(state => ({
+        sessions: state.sessions.map(s => {
+          if (s.id !== sessionId) return s
+          
+          // If cursor is provided, prepend messages. Else, replace all (initial load).
+          const existingMessages = s.messages || []
+          const newMessages = cursor 
+            ? [...messages, ...existingMessages]
+            : messages
+            
+          // Deduplicate just in case
+          const uniqueIds = new Set()
+          const uniqueMessages = newMessages.filter((m: DBMessage) => {
+            if (uniqueIds.has(m.id)) return false
+            uniqueIds.add(m.id)
+            return true
+          })
+            
+          return { ...s, messages: uniqueMessages }
+        })
+      }))
+    } catch (err) {
+      console.error('Failed to fetch messages', err)
+    }
   },
 
   getActiveSession: () => {
