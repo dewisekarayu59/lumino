@@ -20,8 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-text-primary antialiased">
+      <body className="min-h-[100dvh] bg-background text-text-primary antialiased">
         <ThemeProvider>
+          <NextTopLoader />
           <NotificationProvider />
           {children}
         </ThemeProvider>
