@@ -410,7 +410,7 @@ export function MessageBubble({ message, onRetry, onEdit, onDelete }: { message:
  
         {/* Actions */}
         {!isEditing && (
-          <div className={cn('flex items-center gap-0.5 mt-1.5 -mb-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity', isUser ? 'justify-end' : '')}>
+          <div className={cn('flex items-center gap-0.5 mt-1.5 -mb-1 opacity-100 transition-opacity', isUser ? 'justify-end' : '')}>
             <button onClick={() => copyToClipboard(parsedContent ? parsedContent.text : message.content)}
               className={cn('p-1.5 rounded-lg transition-colors', isUser ? 'hover:bg-white/10 text-white/60 hover:text-white' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.05]')} title="Copy">
               {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
